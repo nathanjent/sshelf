@@ -12,7 +12,7 @@ src/sprites.rs:
 	find sprites/ -name '*.png' -exec w4 png2src --rs '{}' >> src/sprites.rs +
 	sed -i 's/^const \(.*\):/pub const \U\1:/g' src/sprites.rs
 
-build/cart.wasm: src/sprites.rs
+build/cart.wasm: src/sprites.rs src/*.rs
 	cargo build --release
 	# Output to location expected by `w4 watch` when a Makefile is present
 	mkdir -p build
