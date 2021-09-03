@@ -1,4 +1,5 @@
 # Convert sprite assets to code constants and build cart
+all: build/cart.wasm
 
 IMGPATH := assets
 IMAGES_TO_CONVERT := $(wildcard $(IMGPATH)/*.png)
@@ -10,6 +11,7 @@ $(info Sprite Images to process into code: $(SPRITE_IMAGES))
 
 $(SPRITE_IMAGES): $(IMAGES_TO_CONVERT)
 	@echo "$< -> $@"
+	rm -f src/sprites.rs
 	mkdir -p $(SPRTPATH)
 	convert $< \
 		-define png:color-type=3 \
@@ -18,18 +20,14 @@ $(SPRITE_IMAGES): $(IMAGES_TO_CONVERT)
 		$@
 
 src/sprites.rs: $(SPRITE_IMAGES)
-	rm -f src/sprites.rs
 	w4 png2src --rs $< >> src/sprites.rs
 	sed -i 's/^const \(.*\):/pub const \U\1:/g' src/sprites.rs
-	rm -rf $(SPRTPATH)
 
 build/cart.wasm: src/sprites.rs src/*.rs
 	cargo build --release
 	# Output to location expected by `w4 watch` when a Makefile is present
 	mkdir -p build
 	cp target/wasm32-unknown-unknown/release/cart.wasm build/cart.wasm
-
-all: build/cart.wasm
 
 .PHONY: clean
 clean:
