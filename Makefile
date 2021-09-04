@@ -5,24 +5,21 @@ IMGPATH := assets
 IMAGES_TO_CONVERT := $(sort $(wildcard $(IMGPATH)/*.png))
 $(info Images to convert to indexed: $(IMAGES_TO_CONVERT))
 
-SPRTPATH := sprites
+SPRITESHEET := spritesheet.png
 
 src/sprites.rs: $(IMAGES_TO_CONVERT)
+	@echo "Combine images into single spritesheet: $< -> $(SPRITESHEET)"
+	convert $^ \
+		-define png:color-type=3 \
+		-define png:bit-depth=4 \
+		-define png:exclude-chunks=all \
+		-append $(SPRITESHEET)
 	@echo "Convert to 4 color indexed PNG: $< -> $@"
-	mkdir -p $(SPRTPATH)
+	echo "/// Sprite data" > $@
 	@echo "Convert sprites to Rust code: $^ -> $@"
-	echo "/// Sprite data" > src/sprites.rs
-	for img in $^; do \
-		convert $$img \
-			-define png:color-type=3 \
-			-define png:bit-depth=4 \
-			-define png:exclude-chunks=all \
-			$(SPRTPATH)/`basename $$img`; \
-		echo ""; \
-		w4 png2src --rs $(SPRTPATH)/`basename $$img`; \
-	done >> $@
+	w4 png2src --rs $(SPRITESHEET) >> $@
 	# Uppercase variable names
-	sed -i 's/^const \(.*\):/pub const \U\1:/g' src/sprites.rs
+	sed -i 's/^const \(.*\):/pub const \U\1:/g' $@
 
 build/cart.wasm: src/sprites.rs src/*.rs
 	cargo build --release
