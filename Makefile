@@ -5,9 +5,14 @@ IMGPATH := assets
 IMAGES_TO_CONVERT := $(sort $(wildcard $(IMGPATH)/*.png))
 $(info Images to convert to indexed: $(IMAGES_TO_CONVERT))
 
-SPRITESHEET := spritesheet.png
+BUILD_DIR := build
+SPRITESHEET := $(BUILD_DIR)/spritesheet.png
+SPRITES_CODE := src/sprites.rs
 
-src/sprites.rs: $(IMAGES_TO_CONVERT)
+# Output cart to location expected by `w4 watch` when a Makefile is present
+CART := $(BUILD_DIR)/cart.wasm
+
+$(SPRITE_CODE): $(IMAGES_TO_CONVERT)
 	@echo "Combine images into single spritesheet: $< -> $(SPRITESHEET)"
 	convert $^ \
 		-define png:color-type=3 \
@@ -21,14 +26,17 @@ src/sprites.rs: $(IMAGES_TO_CONVERT)
 	# Uppercase variable names
 	sed -i 's/^const \(.*\):/pub const \U\1:/g' $@
 
-build/cart.wasm: src/sprites.rs src/*.rs
+$(CART): $(SPRITE_CODE) src/*.rs
 	cargo build --release
-	# Output to location expected by `w4 watch` when a Makefile is present
 	mkdir -p build
-	cp target/wasm32-unknown-unknown/release/cart.wasm build/cart.wasm
+	cp target/wasm32-unknown-unknown/release/cart.wasm $(CART)
 
-.PHONY: clean
+.PHONY: clean run
+run: $(CART)
+	w4 run $(CART)
+
 clean:
 	cargo clean
-	rm -f src/sprites.rs
-	rm -rf sprites/
+	rm -f $(SPRITE_OUT)
+	rm -rf $(SPRITESHEET)
+	rm -f $(CART)
