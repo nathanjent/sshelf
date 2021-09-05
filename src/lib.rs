@@ -9,23 +9,23 @@ use wasm4::*;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
-type SpriteSheet = [u8; 128];
+type SpriteSheet<'a> = &'a[u8];
 
 #[derive(Debug)]
-struct Game {
-    entities: [Entity; 10],
+struct Game<'a> {
+    entities: [Entity<'a>; 10],
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Entity {
+struct Entity<'a> {
     x: i32,
     y: i32,
-    sprite: Option<Sprite>,
+    sprite: Option<Sprite<'a>>,
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Sprite {
-    sheet: SpriteSheet,
+struct Sprite<'a> {
+    sheet: SpriteSheet<'a>,
     width: u32,
     height: u32,
     src_x: u32,
@@ -59,7 +59,7 @@ fn start() {
         width: 16,
         height: 16,
         flags: SPRITESHEETFLAGS,
-        sheet: SPRITESHEET,
+        sheet: &SPRITESHEET,
         src_x: 0,
         src_y: 0,
         stride: SPRITESHEETWIDTH as i32,
@@ -72,7 +72,7 @@ fn start() {
         width: 16,
         height: 16,
         flags: SPRITESHEETFLAGS,
-        sheet: SPRITESHEET,
+        sheet: &SPRITESHEET,
         src_x: 0,
         src_y: 16,
         stride: SPRITESHEETWIDTH as i32,
@@ -96,13 +96,13 @@ fn input() {
         if let Some(mut sprite) = player.sprite {
             // FIXME sprite not flipping correctly
             sprite.flags |= BLIT_FLIP_X;
-            trace_fmt(&format_args!("flip left: {:b}", sprite.flags), 64, 64);
+            //trace("left", 0, 0);
         }
     } else if gamepad & BUTTON_RIGHT != 0 {
         player.x += 1;
         if let Some(mut sprite) = player.sprite {
             sprite.flags &= !BLIT_FLIP_X;
-            trace_fmt(&format_args!("flip right: {:b}", sprite.flags), 64, 64);
+            //trace("right", 0, 0);
         }
     }
     if gamepad & BUTTON_UP != 0 {
@@ -130,11 +130,5 @@ fn draw() {
                 sprite.flags,
             );
         }
-    }
-}
-
-fn trace_fmt(fmt_args: &std::fmt::Arguments, x: i32, y: i32) {
-    if let Some(out) = fmt_args.as_str() {
-        trace(&out, x, y);
     }
 }
