@@ -1,0 +1,6 @@
+-- Load the default Wasm-4 palette in the rx editor
+p/clear
+#071821
+#306850
+#86c06c
+#e0f8cf
