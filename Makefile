@@ -35,11 +35,20 @@ $(BUILD_DIR):
 	mkdir -p build
 
 $(CART): $(BUILD_DIR) $(RELEASE_DIR)/cart.wasm
-	wasm-opt -Oz -o $(CART) $(RELEASE_DIR)/cart.wasm
+	wasm-opt -Oz -o $@ $(RELEASE_DIR)/cart.wasm
 
-.PHONY: clean run
+.PHONY: clean run bundle
 run: $(CART)
-	w4 run $(CART)
+	w4 run $<
+
+bundle: $(CART)
+	@echo "Bundling cart: $<"
+	w4 bundle $< \
+		--linux $(BUILD_DIR)/sshelf \
+		--windows $(BUILD_DIR)/sshelf.exe \
+		--html $(BUILD_DIR)/sshelf.html \
+		--title "Shh Elf"
+	@echo "Bundling complete."
 
 clean:
 	cargo clean
