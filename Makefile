@@ -52,6 +52,4 @@ bundle: $(CART)
 
 clean:
 	cargo clean
-	rm -f $(SPRITE_OUT)
-	rm -rf $(SPRITESHEET)
-	rm -f $(CART)
+	rm -rf $(BUILD_DIR)
