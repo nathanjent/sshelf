@@ -1,5 +1,4 @@
 # Convert sprite assets to code constants and build cart
-all: build/cart.wasm
 
 IMGPATH := assets
 IMAGES_TO_CONVERT := $(sort $(wildcard $(IMGPATH)/*.png))
@@ -8,9 +7,12 @@ $(info Images to convert to indexed: $(IMAGES_TO_CONVERT))
 BUILD_DIR := build
 SPRITESHEET := $(BUILD_DIR)/spritesheet.png
 SPRITES_CODE := src/sprites.rs
+RELEASE_DIR := target/wasm32-unknown-unknown/release
 
 # Output cart to location expected by `w4 watch` when a Makefile is present
 CART := $(BUILD_DIR)/cart.wasm
+
+all: $(CART)
 
 $(SPRITE_CODE): $(IMAGES_TO_CONVERT)
 	@echo "Combine images into single spritesheet: $< -> $(SPRITESHEET)"
@@ -26,17 +28,28 @@ $(SPRITE_CODE): $(IMAGES_TO_CONVERT)
 	# Uppercase variable names
 	sed -i 's/^const \(.*\):/pub const \U\1:/g' $@
 
-$(CART): $(SPRITE_CODE) src/*.rs
+$(RELEASE_DIR)/cart.wasm: $(SPRITE_CODE) src/*.rs
 	cargo build --release
-	mkdir -p build
-	cp target/wasm32-unknown-unknown/release/cart.wasm $(CART)
 
-.PHONY: clean run
+$(BUILD_DIR):
+	mkdir -p build
+
+$(CART): $(BUILD_DIR) $(RELEASE_DIR)/cart.wasm
+	wasm-opt -Oz -o $@ $(RELEASE_DIR)/cart.wasm
+
+.PHONY: clean run bundle
 run: $(CART)
-	w4 run $(CART)
+	w4 run $<
+
+bundle: $(CART)
+	@echo "Bundling cart: $<"
+	w4 bundle $< \
+		--linux $(BUILD_DIR)/sshelf \
+		--windows $(BUILD_DIR)/sshelf.exe \
+		--html $(BUILD_DIR)/sshelf.html \
+		--title "Shh Elf"
+	@echo "Bundling complete."
 
 clean:
 	cargo clean
-	rm -f $(SPRITE_OUT)
-	rm -rf $(SPRITESHEET)
-	rm -f $(CART)
+	rm -rf $(BUILD_DIR)
