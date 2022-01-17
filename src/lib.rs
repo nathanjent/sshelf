@@ -89,89 +89,86 @@ fn start() {
 /// Called by WASM-4 to update the game state
 #[no_mangle]
 fn update() {
-    input();
-    draw();
+    // Try to keep all global state access in the update and start functions
+    let gamepad = unsafe { *GAMEPAD1 };
+
+    ENTITIES.with(|entities| {
+        input(&mut entities.borrow_mut()[..], &gamepad);
+        draw(&entities.borrow()[..]);
+    });
+
+    TICK.set(TICK.get() + 1);
 }
 
 /// Handle controller input
-fn input() {
-    TICK.set(TICK.get() + 1);
+fn input(entities: &mut [Entity], gamepad: &u8) {
+    if let Some(player) = entities.get_mut(PLAYER_ID.get()) {
+        if gamepad & BUTTON_1 != 0 {}
 
-    ENTITIES.with(|entities| {
-        let mut entities = entities.borrow_mut();
-        if let Some(player) = entities.get_mut(PLAYER_ID.get()) {
-            let gamepad = unsafe { *GAMEPAD1 };
+        if gamepad & BUTTON_2 != 0 {}
 
-            if gamepad & BUTTON_1 != 0 {}
-
-            if gamepad & BUTTON_2 != 0 {}
-
-            if gamepad & BUTTON_LEFT != 0 && player.vx > -player.max_vx {
+        if gamepad & BUTTON_LEFT != 0 && player.vx > -player.max_vx {
+            player.vx -= player.ax;
+            player.flip = true;
+        } else if gamepad & BUTTON_RIGHT != 0 && player.vx < player.max_vx {
+            player.vx += player.ax;
+            player.flip = false;
+        } else {
+            if player.vx > 0.3 {
                 player.vx -= player.ax;
-                player.flip = true;
-            } else if gamepad & BUTTON_RIGHT != 0 && player.vx < player.max_vx {
+            } else if player.vx < -0.3 {
                 player.vx += player.ax;
-                player.flip = false;
             } else {
-                if player.vx > 0.3 {
-                    player.vx -= player.ax;
-                } else if player.vx < -0.3 {
-                    player.vx += player.ax;
-                } else {
-                    player.vx = 0.0;
-                }
+                player.vx = 0.0;
             }
+        }
 
-            if gamepad & BUTTON_UP != 0 && player.vy > -player.max_vy {
+        if gamepad & BUTTON_UP != 0 && player.vy > -player.max_vy {
+            player.vy -= player.ay;
+        } else if gamepad & BUTTON_DOWN != 0 && player.vy < player.max_vy {
+            player.vy += player.ay;
+        } else {
+            if player.vy > 0.3 {
                 player.vy -= player.ay;
-            } else if gamepad & BUTTON_DOWN != 0 && player.vy < player.max_vy {
+            } else if player.vy < -0.3 {
                 player.vy += player.ay;
             } else {
-                if player.vy > 0.3 {
-                    player.vy -= player.ay;
-                } else if player.vy < -0.3 {
-                    player.vy += player.ay;
-                } else {
-                    player.vy = 0.0;
-                }
+                player.vy = 0.0;
             }
-
-            player.x += player.vx;
-            player.y += player.vy;
         }
-    });
+
+        player.x += player.vx;
+        player.y += player.vy;
+    }
 }
 
 /// Update the display
-fn draw() {
-    ENTITIES.with(|entities| {
-        for id in 0..ENTITY_COUNT {
-            let entities = entities.borrow();
-            if let Some(entity) = entities.get(id) {
-                #[cfg(debug_assertions)]
-                trace(format!("x: {:?}, y: {:?}", entity.x, entity.y));
+fn draw(entities: &[Entity]) {
+    for id in 0..ENTITY_COUNT {
+        if let Some(entity) = entities.get(id) {
+            #[cfg(debug_assertions)]
+            trace(format!("x: {:?}, y: {:?}", entity.x, entity.y));
 
-                if let Some(sprite_id) = entity.sprite {
-                    if let Some(sprite) = sprites::get_sprite(sprite_id) {
-                        set_draw_color(sprite.draw_color);
-                        blit_sub(
-                            sprite.sheet,
-                            entity.x as i32,
-                            entity.y as i32,
-                            sprite.width,
-                            sprite.height,
-                            sprite.src_x,
-                            sprite.src_y,
-                            sprite.stride,
-                            if entity.flip {
-                                sprite.flags | BLIT_FLIP_X
-                            } else {
-                                sprite.flags & !BLIT_FLIP_X
-                            },
-                        );
-                    }
+            if let Some(sprite_id) = entity.sprite {
+                if let Some(sprite) = sprites::get_sprite(sprite_id) {
+                    set_draw_color(sprite.draw_color);
+                    blit_sub(
+                        sprite.sheet,
+                        entity.x as i32,
+                        entity.y as i32,
+                        sprite.width,
+                        sprite.height,
+                        sprite.src_x,
+                        sprite.src_y,
+                        sprite.stride,
+                        if entity.flip {
+                            sprite.flags | BLIT_FLIP_X
+                        } else {
+                            sprite.flags & !BLIT_FLIP_X
+                        },
+                    );
                 }
             }
         }
-    });
+    }
 }
