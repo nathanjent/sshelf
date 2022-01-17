@@ -148,7 +148,9 @@ fn draw() {
         for id in 0..ENTITY_COUNT {
             let entities = entities.borrow();
             if let Some(entity) = entities.get(id) {
-                //trace(format!("x: {:?}, y: {:?}", entity.x, entity.y));
+                #[cfg(debug_assertions)]
+                trace(format!("x: {:?}, y: {:?}", entity.x, entity.y));
+
                 if let Some(sprite_id) = entity.sprite {
                     if let Some(sprite) = sprites::get_sprite(sprite_id) {
                         set_draw_color(sprite.draw_color);
